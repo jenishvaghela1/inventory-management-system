@@ -31,7 +31,7 @@ A modern inventory management system built with Next.js and Electron, featuring 
 1. **Install Dependencies**
 
    ```bash
-   pnpm install
+   npm install
    ```
 
 2. **Start Development Server**
