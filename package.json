@@ -109,16 +109,16 @@
     "mac": {
       "category": "public.app-category.business",
       "target": "dmg",
-      "icon": "public/placeholder-logo.png"
+      "icon": "public/inventory-manager-high-resolution-logo.png"
     },
     "win": {
       "target": "nsis",
-      "icon": "public/placeholder-logo.png"
+      "icon": "public/inventory-manager-high-resolution-logo.png"
     },
     "linux": {
       "category": "Office",
       "target": "AppImage",
-      "icon": "public/placeholder-logo.png"
+      "icon": "public/inventory-manager-high-resolution-logo.png"
     },
     "nsis": {
       "oneClick": false,
