@@ -7,16 +7,12 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import {
-  CURRENCIES,
-  DEFAULT_CURRENCY,
-  type CurrencyCode,
-} from "@/lib/constants";
+import { CURRENCY, DEFAULT_CURRENCY, type CurrencyCode } from "@/lib/constants";
 
 interface SettingsContextType {
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
-  getCurrencyInfo: () => (typeof CURRENCIES)[CurrencyCode];
+  getCurrencyInfo: () => (typeof CURRENCY)[CurrencyCode];
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -29,7 +25,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Load currency from localStorage
     const storedCurrency = localStorage.getItem("app_currency") as CurrencyCode;
-    if (storedCurrency && CURRENCIES[storedCurrency]) {
+    if (storedCurrency && CURRENCY[storedCurrency]) {
       setCurrencyState(storedCurrency);
     }
   }, []);
@@ -40,7 +36,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   };
 
   const getCurrencyInfo = () => {
-    return CURRENCIES[currency];
+    return CURRENCY[currency];
   };
 
   return (

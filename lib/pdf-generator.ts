@@ -1,6 +1,6 @@
-// Enhanced PDF generator with DZD currency support
+// Enhanced PDF generator with proper currency support
 
-import { COMPANY_DEFAULTS, CURRENCY } from "./constants";
+import { COMPANY_DEFAULTS, CURRENCY, DEFAULT_CURRENCY } from "./constants";
 
 interface InvoiceItem {
   product_id: number;
@@ -18,6 +18,7 @@ interface InvoiceData {
   tax: number;
   discount: number;
   total: number;
+  currency?: string; // Add currency to the interface
 }
 
 export async function generatePDF(invoiceData: InvoiceData): Promise<void> {
@@ -68,6 +69,15 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
     localStorage.getItem("company_info") || JSON.stringify(COMPANY_DEFAULTS),
   );
 
+  // Get user's currency settings
+  const userSettings = JSON.parse(
+    localStorage.getItem("user_settings") || "{}",
+  );
+  const currencyCode =
+    invoiceData.currency || userSettings.currency || DEFAULT_CURRENCY;
+  const currency =
+    CURRENCY[currencyCode as keyof typeof CURRENCY] || CURRENCY.DZD;
+
   return `
     <!DOCTYPE html>
     <html dir="ltr">
@@ -76,9 +86,18 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
       <meta charset="UTF-8">
       <style>
         @media print {
-          body { -webkit-print-color-adjust: exact; }
+          body { 
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+            print-color-adjust: exact;
+          }
           .no-print { display: none !important; }
           .page-break { page-break-before: always; }
+          .invoice-container {
+            box-shadow: none;
+            padding: 20px;
+          }
+          .print-button { display: none !important; }
         }
         
         * {
@@ -94,6 +113,7 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
           background: white;
           padding: 20mm;
           font-size: 12pt;
+          direction: ltr;
         }
         
         .invoice-container {
@@ -102,6 +122,28 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
           background: white;
           box-shadow: 0 0 20px rgba(0,0,0,0.1);
           padding: 40px;
+          border-radius: 10px;
+        }
+        
+        .print-button {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #0066cc;
+          color: white;
+          border: none;
+          padding: 12px 20px;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: bold;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          transition: background 0.3s;
+          z-index: 1000;
+        }
+        
+        .print-button:hover {
+          background: #0056b3;
         }
         
         .invoice-header {
@@ -118,11 +160,13 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
           font-size: 28px;
           font-weight: bold;
           margin-bottom: 5px;
+          text-transform: uppercase;
         }
         
         .company-info p {
           color: #666;
-          margin: 2px 0;
+          margin: 3px 0;
+          font-size: 11pt;
         }
         
         .invoice-details {
@@ -130,18 +174,20 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
         }
         
         .invoice-title {
-          font-size: 32px;
+          font-size: 36px;
           font-weight: bold;
           color: #0066cc;
           margin-bottom: 10px;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
         
         .invoice-meta {
-          background: #f8f9fa;
-          padding: 15px;
-          border-radius: 5px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          padding: 20px;
+          border-radius: 8px;
           margin: 20px 0;
-          border-left: 4px solid #0066cc;
+          border-left: 5px solid #0066cc;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .invoice-meta-row {
@@ -229,32 +275,40 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
         }
         
         .totals-section {
-          margin-top: 30px;
+          margin-top: 40px;
           display: flex;
           justify-content: flex-end;
         }
         
         .totals-table {
-          width: 350px;
+          width: 400px;
           border-collapse: collapse;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+          border-radius: 8px;
+          overflow: hidden;
         }
         
         .totals-table td {
-          padding: 12px 15px;
-          border: 1px solid #ddd;
+          padding: 15px 20px;
+          border-bottom: 1px solid #dee2e6;
           background: white;
+          font-size: 14px;
         }
         
-        .totals-table .total-row {
-          border-top: 2px solid #ddd;
+        .totals-table tr:nth-child(even) {
+          background: #f8f9fa;
         }
         
         .totals-table .grand-total {
-          background: linear-gradient(135deg, #0066cc, #004499);
+          background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
           color: white;
           font-weight: bold;
           font-size: 18px;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .totals-table .grand-total td {
+          border-bottom: none;
         }
         
         .currency {
@@ -262,9 +316,30 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
           color: #0066cc;
         }
         
+        .arabic-currency {
+          font-size: 16px;
+          margin-left: 5px;
+        }
+        
         .footer {
-          margin-top: 50px;
+          margin-top: 60px;
           text-align: center;
+          background: #f8f9fa;
+          padding: 30px;
+          border-radius: 8px;
+          border-top: 3px solid #0066cc;
+        }
+        
+        .footer p {
+          margin: 8px 0;
+          color: #666;
+        }
+        
+        .footer p:first-child {
+          font-size: 18px;
+          color: #0066cc;
+          font-weight: bold;
+        }
           color: #666;
           font-size: 11px;
           border-top: 2px solid #eee;
@@ -360,8 +435,8 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
                   <strong>${item.product_name}</strong>
                 </td>
                 <td class="text-center">${item.quantity}</td>
-                <td class="text-right"><span class="currency">${item.unit_price.toFixed(2)} ${CURRENCY.CODE}</span></td>
-                <td class="text-right"><span class="currency">${(item.quantity * item.unit_price).toFixed(2)} ${CURRENCY.CODE}</span></td>
+                <td class="text-right"><span class="currency">${item.unit_price.toFixed(2)} ${currency.CODE}</span></td>
+                <td class="text-right"><span class="currency">${(item.quantity * item.unit_price).toFixed(2)} ${currency.CODE}</span></td>
               </tr>
             `,
               )
@@ -373,19 +448,19 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
           <table class="totals-table">
             <tr>
               <td>Subtotal:</td>
-              <td class="text-right"><span class="currency">${invoiceData.subtotal.toFixed(2)} ${CURRENCY.CODE}</span></td>
+              <td class="text-right"><span class="currency">${invoiceData.subtotal.toFixed(2)} ${currency.CODE}</span></td>
             </tr>
             <tr>
               <td>Tax (${invoiceData.tax}%):</td>
-              <td class="text-right"><span class="currency">${(invoiceData.subtotal * (invoiceData.tax / 100)).toFixed(2)} ${CURRENCY.CODE}</span></td>
+              <td class="text-right"><span class="currency">${(invoiceData.subtotal * (invoiceData.tax / 100)).toFixed(2)} ${currency.CODE}</span></td>
             </tr>
             <tr>
               <td>Discount (${invoiceData.discount}%):</td>
-              <td class="text-right"><span class="currency">-${(invoiceData.subtotal * (invoiceData.discount / 100)).toFixed(2)} ${CURRENCY.CODE}</span></td>
+              <td class="text-right"><span class="currency">-${(invoiceData.subtotal * (invoiceData.discount / 100)).toFixed(2)} ${currency.CODE}</span></td>
             </tr>
             <tr class="grand-total">
               <td><strong>TOTAL:</strong></td>
-              <td class="text-right"><strong><span class="currency">${invoiceData.total.toFixed(2)} ${CURRENCY.CODE}</span> <span class="arabic-currency">${CURRENCY.SYMBOL}</span></strong></td>
+              <td class="text-right"><strong><span class="currency">${invoiceData.total.toFixed(2)} ${currency.CODE}</span> <span class="arabic-currency">${currency.SYMBOL}</span></strong></td>
             </tr>
           </table>
         </div>
@@ -393,7 +468,7 @@ function createInvoiceHTML(invoiceData: InvoiceData): string {
         <div class="footer">
           <p>Thank you for your business!</p>
           <p>Payment is due within 30 days. Please include invoice number on your payment.</p>
-          <p>All amounts are in ${CURRENCY.NAME} (${CURRENCY.CODE}) - جميع المبالغ بالدينار الجزائري</p>
+          <p>All amounts are in ${currency.NAME} (${currency.CODE}) - جميع المبالغ بالدينار الجزائري</p>
         </div>
       </div>
       

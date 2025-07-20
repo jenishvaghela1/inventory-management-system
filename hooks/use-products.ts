@@ -6,114 +6,119 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
+  Product,
 } from "@/lib/database";
+import { useApp } from "@/contexts/app-context";
 import showToast from "@/lib/toast";
 
-interface ProductInstance {
-  id: string;
-  referenceNumber: string;
-  status: "available" | "sold" | "reserved";
-  soldAt?: string;
-  invoiceId?: string;
-}
-
-interface Product {
-  id: string;
-  reference: string;
-  name: string;
-  description?: string;
-  category: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-  status?: "active" | "inactive" | "discontinued";
-  instances?: ProductInstance[];
-  lowStockThreshold: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function useProducts() {
+  const { refreshTrigger, triggerRefresh } = useApp();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchProducts = useCallback(async () => {
+  const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const productList = getProducts();
-      setProducts(productList);
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-      showToast.error("Failed to load products");
+      setError(null);
+      const data = await getProducts();
+      setProducts(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load products");
+      console.error("Error loading products:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts, refreshTrigger]);
+
   const createProduct = useCallback(
     async (productData: Omit<Product, "id" | "createdAt" | "updatedAt">) => {
       try {
-        addProduct(productData);
-        fetchProducts();
+        const newProduct = await addProduct(productData);
+        setProducts((prev) => [newProduct, ...prev]);
+        triggerRefresh(); // Trigger global refresh
         showToast.success(
-          "Product created successfully",
-          `${productData.name} has been added to inventory`,
+          "Product Added",
+          "Product has been added successfully",
         );
-        return true;
-      } catch (error) {
-        console.error("Failed to create product:", error);
-        showToast.error("Failed to create product");
-        return false;
+        return newProduct;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to add product";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
       }
     },
-    [fetchProducts],
+    [triggerRefresh],
   );
 
   const editProduct = useCallback(
-    async (
-      id: string,
-      productData: Omit<Product, "id" | "createdAt" | "updatedAt">,
-    ) => {
+    async (id: string, updates: Partial<Product>) => {
       try {
-        await updateProduct(id, productData);
-        await fetchProducts();
-        showToast.success("Product updated successfully");
-        return true;
-      } catch (error) {
-        console.error("Failed to update product:", error);
-        showToast.error("Failed to update product");
-        return false;
+        const updatedProduct = await updateProduct(id, updates);
+        if (updatedProduct) {
+          setProducts((prev) =>
+            prev.map((product) =>
+              product.id === id ? updatedProduct : product,
+            ),
+          );
+          triggerRefresh(); // Trigger global refresh
+          showToast.success(
+            "Product Updated",
+            "Product has been updated successfully",
+          );
+          return updatedProduct;
+        } else {
+          throw new Error("Product not found");
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update product";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
       }
     },
-    [fetchProducts],
+    [triggerRefresh],
   );
 
   const removeProduct = useCallback(
     async (id: string) => {
       try {
-        deleteProduct(id);
-        fetchProducts();
-        showToast.success("Product deleted successfully");
-        return true;
-      } catch (error) {
-        console.error("Failed to delete product:", error);
-        showToast.error("Failed to delete product");
-        return false;
+        await deleteProduct(id);
+        setProducts((prev) => prev.filter((product) => product.id !== id));
+        triggerRefresh(); // Trigger global refresh
+        showToast.success(
+          "Product Deleted",
+          "Product has been deleted successfully",
+        );
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete product";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
       }
     },
-    [fetchProducts],
+    [triggerRefresh],
   );
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const refreshProducts = useCallback(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   return {
     products,
     loading,
-    fetchProducts,
+    error,
     createProduct,
     editProduct,
     removeProduct,
+    refreshProducts,
   };
 }

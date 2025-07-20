@@ -1,21 +1,3 @@
-export const CURRENCIES = {
-  DZD: {
-    CODE: "DZD",
-    SYMBOL: "دج",
-    NAME: "Algerian Dinar",
-  },
-  USD: {
-    CODE: "USD",
-    SYMBOL: "$",
-    NAME: "US Dollar",
-  },
-  EUR: {
-    CODE: "EUR",
-    SYMBOL: "€",
-    NAME: "Euro",
-  },
-} as const;
-
 export const CURRENCY = {
   DZD: {
     CODE: "DZD",
@@ -34,7 +16,7 @@ export const CURRENCY = {
   },
 } as const;
 
-export type CurrencyCode = keyof typeof CURRENCIES;
+export type CurrencyCode = keyof typeof CURRENCY;
 
 export const DEFAULT_CURRENCY: CurrencyCode = "DZD";
 

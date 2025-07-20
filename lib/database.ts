@@ -1,4 +1,50 @@
-// Simple localStorage-based database for browser compatibility
+// Database abstraction layer - supports both localStorage (browser) and SQLite (Electron)
+
+// Declare the electronAPI global
+declare global {
+  interface Window {
+    electronAPI?: {
+      isElectron: boolean;
+      getProducts: () => Promise<Product[]>;
+      addProduct: (
+        product: Omit<Product, "id" | "createdAt" | "updatedAt">,
+      ) => Promise<Product>;
+      updateProduct: (
+        id: string,
+        updates: Partial<Product>,
+      ) => Promise<Product | null>;
+      deleteProduct: (id: string) => Promise<boolean>;
+      getInvoices: () => Promise<Invoice[]>;
+      addInvoice: (
+        invoice: Omit<Invoice, "id" | "createdAt" | "updatedAt">,
+      ) => Promise<Invoice>;
+      updateInvoice: (
+        id: string,
+        updates: Partial<Invoice>,
+      ) => Promise<Invoice | null>;
+      deleteInvoice: (id: string) => Promise<boolean>;
+      getCustomers: () => Promise<Customer[]>;
+      addCustomer: (
+        customer: Omit<Customer, "id" | "createdAt">,
+      ) => Promise<Customer>;
+      updateCustomer: (
+        id: string,
+        updates: Partial<Customer>,
+      ) => Promise<Customer | null>;
+      deleteCustomer: (id: string) => Promise<boolean>;
+      getCategories: () => Promise<Category[]>;
+      addCategory: (
+        category: Omit<Category, "id" | "createdAt">,
+      ) => Promise<Category>;
+      getDashboardStats: () => Promise<DashboardStats>;
+      backup: () => Promise<{ dbBackup?: string; jsonBackup?: string }>;
+      getDatabasePath: () => Promise<string>;
+      migrateFromLocalStorage: (data: any) => Promise<void>;
+      exportData: () => Promise<any>;
+      importData: (data: any) => Promise<void>;
+    };
+  }
+}
 
 export interface ProductInstance {
   id: string;
@@ -55,20 +101,116 @@ export interface User {
   createdAt: string;
 }
 
-// Products
-export const getProducts = (): Product[] => {
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  address: string;
+  phone?: string;
+  createdAt: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface DashboardStats {
+  productCount: number;
+  totalStock: number;
+  totalRevenue: number;
+  totalInvoices: number;
+  lowStockProducts: number;
+  recentSales: number;
+}
+
+// Check if running in Electron
+const isElectron = () => {
+  return (
+    typeof window !== "undefined" && window.electronAPI?.isElectron === true
+  );
+};
+
+// One-time migration flag
+let migrationChecked = false;
+
+// Check and migrate localStorage data to SQLite if needed
+const checkAndMigrate = async () => {
+  if (migrationChecked || !isElectron()) return;
+
+  migrationChecked = true;
+
+  try {
+    // Check if there's localStorage data to migrate
+    const localProducts = localStorage.getItem("products");
+    const localInvoices = localStorage.getItem("invoices");
+    const localCustomers = localStorage.getItem("customers");
+    const localCategories = localStorage.getItem("categories");
+
+    if (localProducts || localInvoices || localCustomers || localCategories) {
+      console.log("Found localStorage data, migrating to SQLite...");
+
+      const migrationData: any = {};
+
+      if (localProducts) {
+        migrationData.products = JSON.parse(localProducts);
+      }
+      if (localInvoices) {
+        migrationData.invoices = JSON.parse(localInvoices);
+      }
+      if (localCustomers) {
+        migrationData.customers = JSON.parse(localCustomers);
+      }
+      if (localCategories) {
+        migrationData.categories = JSON.parse(localCategories);
+      }
+
+      await window.electronAPI!.migrateFromLocalStorage(migrationData);
+
+      // Clear localStorage after successful migration
+      localStorage.removeItem("products");
+      localStorage.removeItem("invoices");
+      localStorage.removeItem("customers");
+      localStorage.removeItem("categories");
+
+      console.log("Migration completed successfully");
+    }
+  } catch (error) {
+    console.error("Migration failed:", error);
+  }
+};
+
+// Products - localStorage implementation
+export const getProducts = async (): Promise<Product[]> => {
+  if (isElectron()) {
+    await checkAndMigrate();
+    return window.electronAPI!.getProducts();
+  }
+
   const products = localStorage.getItem("products");
   return products ? JSON.parse(products) : [];
 };
 
 export const saveProducts = (products: Product[]): void => {
+  if (isElectron()) {
+    // In Electron, individual operations are used instead of bulk save
+    console.warn("saveProducts should not be called in Electron mode");
+    return;
+  }
   localStorage.setItem("products", JSON.stringify(products));
 };
 
-export const addProduct = (
+export const addProduct = async (
   product: Omit<Product, "id" | "createdAt" | "updatedAt">,
-): Product => {
-  const products = getProducts();
+): Promise<Product> => {
+  if (isElectron()) {
+    await checkAndMigrate();
+    return window.electronAPI!.addProduct(product);
+  }
+
+  const products = await getProducts();
 
   // Generate instances if they're provided
   const instances = product.instances || [];
@@ -76,7 +218,7 @@ export const addProduct = (
   const newProduct: Product = {
     ...product,
     id: Date.now().toString(),
-    lowStockThreshold: 5, // Default low stock threshold
+    lowStockThreshold: product.lowStockThreshold || 5,
     instances,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -87,11 +229,15 @@ export const addProduct = (
   return newProduct;
 };
 
-export const updateProduct = (
+export const updateProduct = async (
   id: string,
   updates: Partial<Product>,
-): Product | null => {
-  const products = getProducts();
+): Promise<Product | null> => {
+  if (isElectron()) {
+    return window.electronAPI!.updateProduct(id, updates);
+  }
+
+  const products = await getProducts();
   const index = products.findIndex((p) => p.id === id);
   if (index === -1) return null;
 
@@ -104,8 +250,12 @@ export const updateProduct = (
   return products[index];
 };
 
-export const deleteProduct = (id: string): boolean => {
-  const products = getProducts();
+export const deleteProduct = async (id: string): Promise<boolean> => {
+  if (isElectron()) {
+    return window.electronAPI!.deleteProduct(id);
+  }
+
+  const products = await getProducts();
   const filteredProducts = products.filter((p) => p.id !== id);
   if (filteredProducts.length === products.length) return false;
 
@@ -113,20 +263,33 @@ export const deleteProduct = (id: string): boolean => {
   return true;
 };
 
-// Invoices
-export const getInvoices = (): Invoice[] => {
+// Invoices - localStorage implementation
+export const getInvoices = async (): Promise<Invoice[]> => {
+  if (isElectron()) {
+    await checkAndMigrate();
+    return window.electronAPI!.getInvoices();
+  }
+
   const invoices = localStorage.getItem("invoices");
   return invoices ? JSON.parse(invoices) : [];
 };
 
 export const saveInvoices = (invoices: Invoice[]): void => {
+  if (isElectron()) {
+    console.warn("saveInvoices should not be called in Electron mode");
+    return;
+  }
   localStorage.setItem("invoices", JSON.stringify(invoices));
 };
 
-export const addInvoice = (
+export const addInvoice = async (
   invoice: Omit<Invoice, "id" | "createdAt" | "updatedAt">,
-): Invoice => {
-  const invoices = getInvoices();
+): Promise<Invoice> => {
+  if (isElectron()) {
+    return window.electronAPI!.addInvoice(invoice);
+  }
+
+  const invoices = await getInvoices();
   const newInvoice: Invoice = {
     ...invoice,
     id: Date.now().toString(),
@@ -138,11 +301,15 @@ export const addInvoice = (
   return newInvoice;
 };
 
-export const updateInvoice = (
+export const updateInvoice = async (
   id: string,
   updates: Partial<Invoice>,
-): Invoice | null => {
-  const invoices = getInvoices();
+): Promise<Invoice | null> => {
+  if (isElectron()) {
+    return window.electronAPI!.updateInvoice(id, updates);
+  }
+
+  const invoices = await getInvoices();
   const index = invoices.findIndex((i) => i.id === id);
   if (index === -1) return null;
 
@@ -155,8 +322,12 @@ export const updateInvoice = (
   return invoices[index];
 };
 
-export const deleteInvoice = (id: string): boolean => {
-  const invoices = getInvoices();
+export const deleteInvoice = async (id: string): Promise<boolean> => {
+  if (isElectron()) {
+    return window.electronAPI!.deleteInvoice(id);
+  }
+
+  const invoices = await getInvoices();
   const filteredInvoices = invoices.filter((i) => i.id !== id);
   if (filteredInvoices.length === invoices.length) return false;
 
@@ -165,28 +336,32 @@ export const deleteInvoice = (id: string): boolean => {
 };
 
 // Customer management functions
-export interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  address: string;
-  phone?: string;
-  createdAt: string;
-}
+export const getCustomers = async (): Promise<Customer[]> => {
+  if (isElectron()) {
+    await checkAndMigrate();
+    return window.electronAPI!.getCustomers();
+  }
 
-export const getCustomers = (): Customer[] => {
   const customers = localStorage.getItem("customers");
   return customers ? JSON.parse(customers) : [];
 };
 
 export const saveCustomers = (customers: Customer[]): void => {
+  if (isElectron()) {
+    console.warn("saveCustomers should not be called in Electron mode");
+    return;
+  }
   localStorage.setItem("customers", JSON.stringify(customers));
 };
 
-export const addCustomer = (
+export const addCustomer = async (
   customer: Omit<Customer, "id" | "createdAt">,
-): Customer => {
-  const customers = getCustomers();
+): Promise<Customer> => {
+  if (isElectron()) {
+    return window.electronAPI!.addCustomer(customer);
+  }
+
+  const customers = await getCustomers();
   const newCustomer: Customer = {
     ...customer,
     id: Date.now().toString(),
@@ -197,22 +372,87 @@ export const addCustomer = (
   return newCustomer;
 };
 
+export const updateCustomer = async (
+  id: string,
+  updates: Partial<Customer>,
+): Promise<Customer | null> => {
+  if (isElectron()) {
+    return window.electronAPI!.updateCustomer(id, updates);
+  }
+
+  const customers = await getCustomers();
+  const index = customers.findIndex((c) => c.id === id);
+  if (index === -1) return null;
+
+  customers[index] = {
+    ...customers[index],
+    ...updates,
+  };
+  saveCustomers(customers);
+  return customers[index];
+};
+
+export const deleteCustomer = async (id: string): Promise<boolean> => {
+  if (isElectron()) {
+    return window.electronAPI!.deleteCustomer(id);
+  }
+
+  const customers = await getCustomers();
+  const filteredCustomers = customers.filter((c) => c.id !== id);
+  if (filteredCustomers.length === customers.length) return false;
+
+  saveCustomers(filteredCustomers);
+  return true;
+};
+
+// Categories
+export const getCategories = async (): Promise<Category[]> => {
+  if (isElectron()) {
+    await checkAndMigrate();
+    return window.electronAPI!.getCategories();
+  }
+
+  const categories = localStorage.getItem("categories");
+  return categories ? JSON.parse(categories) : [];
+};
+
+export const saveCategories = (categories: Category[]): void => {
+  if (isElectron()) {
+    console.warn("saveCategories should not be called in Electron mode");
+    return;
+  }
+  localStorage.setItem("categories", JSON.stringify(categories));
+};
+
+export const addCategory = async (
+  category: Omit<Category, "id" | "createdAt">,
+): Promise<Category> => {
+  if (isElectron()) {
+    return window.electronAPI!.addCategory(category);
+  }
+
+  const categories = await getCategories();
+  const newCategory: Category = {
+    ...category,
+    id: Date.now().toString(),
+    createdAt: new Date().toISOString(),
+  };
+  categories.push(newCategory);
+  saveCategories(categories);
+  return newCategory;
+};
+
 // Alternative function name for backward compatibility
 export const createInvoice = addInvoice;
 
 // Dashboard statistics
-export interface DashboardStats {
-  productCount: number;
-  totalStock: number;
-  totalRevenue: number;
-  totalInvoices: number;
-  lowStockProducts: number;
-  recentSales: number;
-}
+export const getDashboardStats = async (): Promise<DashboardStats> => {
+  if (isElectron()) {
+    return window.electronAPI!.getDashboardStats();
+  }
 
-export const getDashboardStats = (): DashboardStats => {
-  const products = getProducts();
-  const invoices = getInvoices();
+  const products = await getProducts();
+  const invoices = await getInvoices();
 
   const productCount = products.length;
   const totalStock = products.reduce(
@@ -250,9 +490,39 @@ export const getDashboardStats = (): DashboardStats => {
 
 // Database management
 export const exportDatabase = async (): Promise<void> => {
+  if (isElectron()) {
+    // In Electron, use the backup functionality which creates both DB and JSON backups
+    try {
+      const backupResult = await window.electronAPI!.backup();
+      console.log("Backup created:", backupResult);
+
+      // Also create a downloadable JSON export for compatibility
+      const data = await window.electronAPI!.exportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventory-export-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      return;
+    } catch (error) {
+      console.error("Export failed:", error);
+      throw error;
+    }
+  }
+
+  // Browser fallback
   const data = {
-    products: getProducts(),
-    invoices: getInvoices(),
+    products: await getProducts(),
+    invoices: await getInvoices(),
+    customers: await getCustomers(),
+    categories: await getCategories(),
     exportDate: new Date().toISOString(),
   };
 
@@ -275,7 +545,7 @@ export const importDatabase = async (): Promise<void> => {
     input.type = "file";
     input.accept = ".json";
 
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) {
         reject(new Error("No file selected"));
@@ -283,11 +553,20 @@ export const importDatabase = async (): Promise<void> => {
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const data = JSON.parse(e.target?.result as string);
-          if (data.products) saveProducts(data.products);
-          if (data.invoices) saveInvoices(data.invoices);
+
+          if (isElectron()) {
+            await window.electronAPI!.importData(data);
+          } else {
+            // Browser fallback
+            if (data.products) saveProducts(data.products);
+            if (data.invoices) saveInvoices(data.invoices);
+            if (data.customers) saveCustomers(data.customers);
+            if (data.categories) saveCategories(data.categories);
+          }
+
           resolve();
         } catch (error) {
           reject(new Error("Invalid file format"));
@@ -298,4 +577,34 @@ export const importDatabase = async (): Promise<void> => {
 
     input.click();
   });
+};
+
+// Get database information
+export const getDatabaseInfo = async () => {
+  if (isElectron()) {
+    try {
+      const dbPath = await window.electronAPI!.getDatabasePath();
+      return {
+        type: "SQLite",
+        location: dbPath,
+        persistent: true,
+        secure: true,
+      };
+    } catch (error) {
+      console.error("Failed to get database path:", error);
+      return {
+        type: "SQLite",
+        location: "Unknown",
+        persistent: true,
+        secure: true,
+      };
+    }
+  } else {
+    return {
+      type: "localStorage",
+      location: "Browser Storage",
+      persistent: false,
+      secure: false,
+    };
+  }
 };

@@ -20,24 +20,10 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import showToast from "@/lib/toast";
 import { useLanguage } from "@/contexts/language-context";
 import { useSettings } from "@/contexts/settings-context";
-
-interface Invoice {
-  id: number;
-  client_name: string;
-  client_email: string;
-  client_address: string;
-  date: string;
-  total: number;
-  items: {
-    product_id: number;
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-  }[];
-}
+import type { Invoice } from "@/lib/database";
 
 export default function Invoices() {
-  const { invoices, loading, fetchInvoices } = useInvoices();
+  const { invoices, loading, refreshInvoices } = useInvoices();
   const { openModal } = useApp();
   const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -47,24 +33,27 @@ export default function Invoices() {
   const { getCurrencyInfo } = useSettings();
 
   useEffect(() => {
-    fetchInvoices();
+    refreshInvoices();
   }, []);
 
   const handleViewInvoice = async (invoice: Invoice) => {
     setPdfLoading(true);
     try {
       await generatePDF({
-        id: invoice.id,
-        client_name: invoice.client_name,
-        date: invoice.date,
-        items: invoice.items,
-        subtotal: invoice.items.reduce(
-          (sum, item) => sum + item.quantity * item.unit_price,
-          0,
-        ),
-        tax: 0,
+        id: Number.parseInt(invoice.id),
+        client_name: invoice.customerName,
+        date: invoice.createdAt,
+        items: invoice.items.map((item) => ({
+          product_id: Number.parseInt(item.productId),
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.price,
+        })),
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
         discount: 0,
         total: invoice.total,
+        currency: getCurrencyInfo().CODE,
       });
       showToast.success("Invoice preview generated");
     } catch (error) {
@@ -79,17 +68,20 @@ export default function Invoices() {
     setPdfLoading(true);
     try {
       await downloadInvoicePDF({
-        id: invoice.id,
-        client_name: invoice.client_name,
-        date: invoice.date,
-        items: invoice.items,
-        subtotal: invoice.items.reduce(
-          (sum, item) => sum + item.quantity * item.unit_price,
-          0,
-        ),
-        tax: 0,
+        id: Number.parseInt(invoice.id),
+        client_name: invoice.customerName,
+        date: invoice.createdAt,
+        items: invoice.items.map((item) => ({
+          product_id: Number.parseInt(item.productId),
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.price,
+        })),
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
         discount: 0,
         total: invoice.total,
+        currency: getCurrencyInfo().CODE,
       });
       showToast.success("Invoice PDF downloaded and print dialog opened");
     } catch (error) {
@@ -101,11 +93,11 @@ export default function Invoices() {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
-    const matchesSearch = invoice.client_name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const matchesSearch = invoice.customerName
+      ?.toLowerCase()
+      .includes(searchTerm?.toLowerCase());
 
-    const invoiceDate = new Date(invoice.date);
+    const invoiceDate = new Date(invoice.createdAt);
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
 
@@ -219,11 +211,11 @@ export default function Invoices() {
                     style={{ animationDelay: `${300 + index * 50}ms` }}
                   >
                     <TableCell className="font-medium">#{invoice.id}</TableCell>
-                    <TableCell>{invoice.client_name}</TableCell>
+                    <TableCell>{invoice.customerName}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {invoice.client_email || t("common.notAvailable")}
+                      {invoice.customerEmail || t("common.notAvailable")}
                     </TableCell>
-                    <TableCell>{formatDate(invoice.date)}</TableCell>
+                    <TableCell>{formatDate(invoice.createdAt)}</TableCell>
                     <TableCell>
                       {invoice.items.length} {t("invoices.items")}
                     </TableCell>

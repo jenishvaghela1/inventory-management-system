@@ -32,8 +32,8 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
-import { useCustomers } from "@/hooks/use-customers";
 import { useLanguage } from "@/contexts/language-context";
+import useCustomers from "@/hooks/use-customers";
 
 interface Customer {
   id: string;

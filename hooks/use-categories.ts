@@ -1,133 +1,67 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { getCategories, addCategory, Category } from "@/lib/database";
 import showToast from "@/lib/toast";
-
-interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  color: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Simple localStorage-based storage for categories
-const getCategories = (): Category[] => {
-  const categories = localStorage.getItem("categories");
-  return categories ? JSON.parse(categories) : [];
-};
-
-const saveCategories = (categories: Category[]): void => {
-  localStorage.setItem("categories", JSON.stringify(categories));
-};
+import { useApp } from "@/contexts/app-context";
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { refreshTrigger, triggerRefresh } = useApp();
 
-  const fetchCategories = useCallback(async () => {
+  const loadCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const categoryList = getCategories();
-      setCategories(categoryList);
-    } catch (error) {
-      console.error("Failed to fetch categories:", error);
-      showToast.error("Failed to load categories");
+      setError(null);
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load categories",
+      );
+      console.error("Error loading categories:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createCategory = useCallback(
-    async (categoryData: Omit<Category, "id" | "createdAt" | "updatedAt">) => {
-      try {
-        const categories = getCategories();
-        const newCategory: Category = {
-          ...categoryData,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        categories.push(newCategory);
-        saveCategories(categories);
-        fetchCategories();
-        showToast.success(
-          "Category created successfully",
-          `${categoryData.name} has been added`,
-        );
-        return true;
-      } catch (error) {
-        console.error("Failed to create category:", error);
-        showToast.error("Failed to create category");
-        return false;
-      }
-    },
-    [fetchCategories],
-  );
-
-  const editCategory = useCallback(
-    async (
-      id: string,
-      categoryData: Omit<Category, "id" | "createdAt" | "updatedAt">,
-    ) => {
-      try {
-        const categories = getCategories();
-        const index = categories.findIndex((c) => c.id === id);
-        if (index === -1) {
-          throw new Error("Category not found");
-        }
-
-        categories[index] = {
-          ...categories[index],
-          ...categoryData,
-          updatedAt: new Date().toISOString(),
-        };
-        saveCategories(categories);
-        fetchCategories();
-        showToast.success("Category updated successfully");
-        return true;
-      } catch (error) {
-        console.error("Failed to update category:", error);
-        showToast.error("Failed to update category");
-        return false;
-      }
-    },
-    [fetchCategories],
-  );
-
-  const removeCategory = useCallback(
-    async (id: string) => {
-      try {
-        const categories = getCategories();
-        const filteredCategories = categories.filter((c) => c.id !== id);
-        if (filteredCategories.length === categories.length) {
-          throw new Error("Category not found");
-        }
-
-        saveCategories(filteredCategories);
-        fetchCategories();
-        showToast.success("Category deleted successfully");
-        return true;
-      } catch (error) {
-        console.error("Failed to delete category:", error);
-        showToast.error("Failed to delete category");
-        return false;
-      }
-    },
-    [fetchCategories],
-  );
-
   useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+    loadCategories();
+  }, [loadCategories, refreshTrigger]);
+
+  const createCategory = useCallback(
+    async (categoryData: Omit<Category, "id" | "createdAt">) => {
+      try {
+        const newCategory = await addCategory(categoryData);
+        setCategories((prev) => [newCategory, ...prev]);
+        triggerRefresh(); // Trigger global refresh
+        showToast.success(
+          "Category Added",
+          "Category has been added successfully",
+        );
+        return newCategory;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to add category";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
+      }
+    },
+    [triggerRefresh],
+  );
+
+  const refreshCategories = useCallback(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   return {
     categories,
     loading,
+    error,
     createCategory,
-    editCategory,
-    removeCategory,
-    fetchCategories,
+    refreshCategories,
   };
 }

@@ -36,6 +36,7 @@ import { MODAL_TYPES, TAX_RATES } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { downloadInvoicePDF } from "@/lib/pdf-generator";
 import showToast from "@/lib/toast";
+import { useSettings } from "@/contexts/settings-context";
 
 interface InvoiceItem {
   product_id: number;
@@ -58,7 +59,8 @@ const initialFormData = {
 export function CreateInvoiceModal() {
   const { activeModal, closeModal, triggerRefresh } = useApp();
   const { products } = useProducts();
-  const { createNewInvoice } = useInvoices();
+  const { createInvoice } = useInvoices();
+  const { getCurrencyInfo } = useSettings();
 
   const [formData, setFormData] = useState(initialFormData);
   const [invoiceItems, setInvoiceItems] = useState<InvoiceItem[]>([]);
@@ -222,15 +224,26 @@ export function CreateInvoiceModal() {
 
     try {
       const invoiceData = {
-        client_name: formData.clientName.trim(),
-        client_email: formData.clientEmail.trim(),
-        client_address: formData.clientAddress.trim(),
-        date: formData.invoiceDate,
+        customerName: formData.clientName.trim(),
+        customerEmail: formData.clientEmail.trim(),
+        customerAddress: formData.clientAddress.trim(),
+        items: invoiceItems.map((item) => ({
+          productId: item.product_id.toString(),
+          productName: item.product_name,
+          quantity: item.quantity,
+          price: item.unit_price,
+          total: item.quantity * item.unit_price,
+        })),
+        subtotal: invoiceItems.reduce(
+          (sum, item) => sum + item.quantity * item.unit_price,
+          0,
+        ),
+        tax: formData.tax,
         total: calculateTotal(),
-        items: invoiceItems,
+        status: "pending" as const,
       };
 
-      const invoice = await createNewInvoice(invoiceData);
+      const invoice = await createInvoice(invoiceData);
 
       if (invoice) {
         // Generate PDF
@@ -239,11 +252,12 @@ export function CreateInvoiceModal() {
             id: Number.parseInt(invoice.id),
             client_name: formData.clientName.trim(),
             date: formData.invoiceDate,
-            items: invoiceItems,
+            items: invoiceItems, // Use the original invoiceItems format
             subtotal: calculateSubtotal(),
             tax: formData.tax,
             discount: formData.discount,
             total: calculateTotal(),
+            currency: getCurrencyInfo().CODE,
           });
         } catch (error) {
           console.error("Failed to generate PDF:", error);

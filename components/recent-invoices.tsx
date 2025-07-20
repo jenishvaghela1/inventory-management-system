@@ -17,24 +17,14 @@ import { generatePDF } from "@/lib/pdf-generator";
 import { useApp } from "@/contexts/app-context";
 import { formatCurrencyWithSymbol, formatDate } from "@/lib/utils";
 import showToast from "@/lib/toast";
-
-interface Invoice {
-  id: number;
-  client_name: string;
-  date: string;
-  total: number;
-  items: {
-    product_id: number;
-    product_name: string;
-    quantity: number;
-    unit_price: number;
-  }[];
-}
+import { useSettings } from "@/contexts/settings-context";
+import type { Invoice } from "@/lib/database";
 
 export function RecentInvoices() {
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const { refreshTrigger } = useApp();
+  const { getCurrencyInfo } = useSettings();
 
   useEffect(() => {
     fetchRecentInvoices();
@@ -45,7 +35,10 @@ export function RecentInvoices() {
       setLoading(true);
       const invoices = await getInvoices();
       const recent = invoices
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
         .slice(0, 5);
       setRecentInvoices(recent);
     } catch (error) {
@@ -59,17 +52,20 @@ export function RecentInvoices() {
   const handleViewInvoice = async (invoice: Invoice) => {
     try {
       await generatePDF({
-        id: invoice.id,
-        client_name: invoice.client_name,
-        date: invoice.date,
-        items: invoice.items,
-        subtotal: invoice.items.reduce(
-          (sum, item) => sum + item.quantity * item.unit_price,
-          0,
-        ),
-        tax: 0,
+        id: Number.parseInt(invoice.id),
+        client_name: invoice.customerName,
+        date: invoice.createdAt,
+        items: invoice.items.map((item) => ({
+          product_id: Number.parseInt(item.productId),
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.price,
+        })),
+        subtotal: invoice.subtotal,
+        tax: invoice.tax,
         discount: 0,
         total: invoice.total,
+        currency: getCurrencyInfo().CODE,
       });
       showToast.success("Invoice preview generated");
     } catch (error) {
@@ -108,8 +104,8 @@ export function RecentInvoices() {
                 {recentInvoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">#{invoice.id}</TableCell>
-                    <TableCell>{invoice.client_name}</TableCell>
-                    <TableCell>{formatDate(invoice.date)}</TableCell>
+                    <TableCell>{invoice.customerName}</TableCell>
+                    <TableCell>{formatDate(invoice.createdAt)}</TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrencyWithSymbol(invoice.total)}
                     </TableCell>

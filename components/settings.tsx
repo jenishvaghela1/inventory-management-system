@@ -36,17 +36,17 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTheme } from "next-themes";
-import { exportDatabase, importDatabase } from "@/lib/database";
+import {
+  exportDatabase,
+  importDatabase,
+  getDatabaseInfo,
+} from "@/lib/database";
 import { useApp } from "@/contexts/app-context";
 import { useAuth } from "@/contexts/auth-context";
 import { useSettings } from "@/contexts/settings-context";
 import { useLanguage } from "@/contexts/language-context";
 import showToast from "@/lib/toast";
-import {
-  COMPANY_DEFAULTS,
-  CURRENCIES,
-  type CurrencyCode,
-} from "@/lib/constants";
+import { COMPANY_DEFAULTS, CURRENCY, type CurrencyCode } from "@/lib/constants";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import {
   SettingsIcon,
@@ -119,12 +119,21 @@ export default function Settings() {
     confirm: false,
   });
 
+  // Database info state
+  const [databaseInfo, setDatabaseInfo] = useState<{
+    type: string;
+    location: string;
+    persistent: boolean;
+    secure: boolean;
+  } | null>(null);
+
   useEffect(() => {
     const storedInfo = localStorage.getItem("company_info");
     if (storedInfo) {
       setCompanyInfo(JSON.parse(storedInfo));
     }
     loadAccounts();
+    loadDatabaseInfo();
   }, []);
 
   useEffect(() => {
@@ -139,6 +148,15 @@ export default function Settings() {
   const loadAccounts = () => {
     const allAccounts = getAllAccounts();
     setAccounts(allAccounts);
+  };
+
+  const loadDatabaseInfo = async () => {
+    try {
+      const info = await getDatabaseInfo();
+      setDatabaseInfo(info);
+    } catch (error) {
+      console.error("Failed to load database info:", error);
+    }
   };
 
   const handleThemeToggle = (checked: boolean) => {
@@ -157,7 +175,7 @@ export default function Settings() {
     setCurrency(newCurrency);
     showToast.success(
       t("messages.currencyUpdated"),
-      `${t("settings.currency.current")}: ${CURRENCIES[newCurrency].NAME}`,
+      `${t("settings.currency.current")}: ${CURRENCY[newCurrency].NAME}`,
     );
   };
 
@@ -878,7 +896,7 @@ export default function Settings() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(CURRENCIES).map(([code, info]) => (
+                      {Object.entries(CURRENCY).map(([code, info]) => (
                         <SelectItem key={code} value={code}>
                           {info.SYMBOL} {info.NAME} ({info.CODE})
                         </SelectItem>
@@ -978,6 +996,96 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Database Information */}
+                {databaseInfo && (
+                  <div className="bg-muted/50 p-4 rounded-lg border">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <Database className="h-4 w-4" />
+                      Database Information
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-muted-foreground">
+                          Type:
+                        </span>
+                        <p className="mt-1">
+                          {databaseInfo.type}
+                          {databaseInfo.type === "SQLite" && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                              Persistent
+                            </span>
+                          )}
+                          {databaseInfo.type === "localStorage" && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                              Temporary
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground">
+                          Storage:
+                        </span>
+                        <p className="mt-1 break-all">
+                          {databaseInfo.location}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground">
+                          Data Safety:
+                        </span>
+                        <p className="mt-1">
+                          {databaseInfo.persistent ? (
+                            <span className="text-green-600 dark:text-green-400">
+                              ✓ Data survives app reinstalls
+                            </span>
+                          ) : (
+                            <span className="text-yellow-600 dark:text-yellow-400">
+                              ⚠ Data may be lost
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium text-muted-foreground">
+                          Security:
+                        </span>
+                        <p className="mt-1">
+                          {databaseInfo.secure ? (
+                            <span className="text-green-600 dark:text-green-400">
+                              ✓ Local file system
+                            </span>
+                          ) : (
+                            <span className="text-blue-600 dark:text-blue-400">
+                              Browser storage
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    {databaseInfo.type === "SQLite" && (
+                      <div className="mt-3 p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
+                        <p className="text-sm text-green-800 dark:text-green-200">
+                          <strong>✓ Enhanced Protection:</strong> Your data is
+                          stored in a SQLite database in your Documents folder
+                          and will persist even if you uninstall this
+                          application.
+                        </p>
+                      </div>
+                    )}
+                    {databaseInfo.type === "localStorage" && (
+                      <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950 rounded border border-yellow-200 dark:border-yellow-800">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          <strong>⚠ Browser Storage:</strong> Your data is
+                          stored in browser storage. Consider exporting your
+                          data regularly and upgrading to the Electron app for
+                          better data persistence.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     variant="outline"

@@ -1,77 +1,129 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getInvoices, createInvoice } from "@/lib/database";
+import {
+  getInvoices,
+  addInvoice,
+  updateInvoice,
+  deleteInvoice,
+  Invoice,
+} from "@/lib/database";
 import showToast from "@/lib/toast";
-
-interface InvoiceItem {
-  product_id: number;
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-}
-
-interface Invoice {
-  id: number;
-  client_name: string;
-  client_email: string;
-  client_address: string;
-  date: string;
-  total: number;
-  items: InvoiceItem[];
-}
+import { useApp } from "@/contexts/app-context";
 
 export function useInvoices() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { refreshTrigger, triggerRefresh } = useApp();
 
-  const fetchInvoices = useCallback(async () => {
+  const loadInvoices = useCallback(async () => {
     try {
       setLoading(true);
-      const invoiceList = await getInvoices();
-      setInvoices(invoiceList);
-    } catch (error) {
-      console.error("Failed to fetch invoices:", error);
-      showToast.error("Failed to load invoices");
+      setError(null);
+      const data = await getInvoices();
+      setInvoices(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load invoices");
+      console.error("Error loading invoices:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createNewInvoice = useCallback(
-    async (invoiceData: {
-      client_name: string;
-      client_email: string;
-      client_address: string;
-      date: string;
-      total: number;
-      items: InvoiceItem[];
-    }) => {
+  useEffect(() => {
+    loadInvoices();
+  }, [loadInvoices, refreshTrigger]);
+
+  const createInvoice = useCallback(
+    async (invoiceData: Omit<Invoice, "id" | "createdAt" | "updatedAt">) => {
       try {
-        const invoiceId = await createInvoice(invoiceData);
-        await fetchInvoices();
+        const newInvoice = await addInvoice(invoiceData);
+        setInvoices((prev) => [newInvoice, ...prev]);
+        triggerRefresh(); // Trigger global refresh
         showToast.success(
-          "Invoice created successfully",
-          `Invoice #${invoiceId} has been created`,
+          "Invoice Created",
+          "Invoice has been created successfully",
         );
-        return invoiceId;
-      } catch (error) {
-        console.error("Failed to create invoice:", error);
-        showToast.error("Failed to create invoice");
-        return null;
+        return newInvoice;
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to create invoice";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
       }
     },
-    [fetchInvoices],
+    [triggerRefresh],
   );
 
-  useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
+  const editInvoice = useCallback(
+    async (id: string, updates: Partial<Invoice>) => {
+      try {
+        const updatedInvoice = await updateInvoice(id, updates);
+        if (updatedInvoice) {
+          setInvoices((prev) =>
+            prev.map((invoice) =>
+              invoice.id === id ? updatedInvoice : invoice,
+            ),
+          );
+          triggerRefresh(); // Trigger global refresh
+          showToast.success(
+            "Invoice Updated",
+            "Invoice has been updated successfully",
+          );
+          return updatedInvoice;
+        } else {
+          throw new Error("Invoice not found");
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to update invoice";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
+      }
+    },
+    [triggerRefresh],
+  );
+
+  const removeInvoice = useCallback(
+    async (id: string) => {
+      try {
+        const success = await deleteInvoice(id);
+        if (success) {
+          setInvoices((prev) => prev.filter((invoice) => invoice.id !== id));
+          triggerRefresh(); // Trigger global refresh
+          showToast.success(
+            "Invoice Deleted",
+            "Invoice has been deleted successfully",
+          );
+          return true;
+        } else {
+          throw new Error("Invoice not found");
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to delete invoice";
+        setError(message);
+        showToast.error("Error", message);
+        throw err;
+      }
+    },
+    [triggerRefresh],
+  );
+
+  const refreshInvoices = useCallback(() => {
+    loadInvoices();
+  }, [loadInvoices]);
 
   return {
     invoices,
     loading,
-    fetchInvoices,
-    createNewInvoice,
+    error,
+    createInvoice,
+    editInvoice,
+    removeInvoice,
+    refreshInvoices,
   };
 }
