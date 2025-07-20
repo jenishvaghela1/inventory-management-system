@@ -2,17 +2,22 @@ const { app, BrowserWindow } = require("electron");
 const serve = require("electron-serve");
 const path = require("path");
 
-const appServe = app.isPackaged ? serve({
-  directory: path.join(__dirname, "../out")
-}) : null;
+const appServe = app.isPackaged
+  ? serve({
+      directory: path.join(__dirname, "../out"),
+    })
+  : null;
 
 const createWindow = () => {
   const win = new BrowserWindow({
     fullscreen: true,
-    icon: path.join(__dirname, "/public/inventory-manager-high-resolution-logo.png"),
+    icon: path.join(
+      __dirname,
+      "/public/inventory-manager-high-resolution-logo.png",
+    ),
     webPreferences: {
-      preload: path.join(__dirname, "preload.js")
-    }
+      preload: path.join(__dirname, "preload.js"),
+    },
   });
 
   if (app.isPackaged) {
@@ -26,14 +31,14 @@ const createWindow = () => {
       win.webContents.reloadIgnoringCache();
     });
   }
-}
+};
 
 app.on("ready", () => {
-    createWindow();
+  createWindow();
 });
 
 app.on("window-all-closed", () => {
-    if(process.platform !== "darwin"){
-        app.quit();
-    }
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-    getProducts,
-    addProduct,
-    updateProduct,
-    deleteProduct,
+  getProducts,
+  addProduct,
+  updateProduct,
+  deleteProduct,
 } from "@/lib/database";
 import showToast from "@/lib/toast";
 

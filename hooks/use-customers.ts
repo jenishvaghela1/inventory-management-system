@@ -53,7 +53,7 @@ export function useCustomers() {
         fetchCustomers();
         showToast.success(
           "Customer created successfully",
-          `${customerData.name} has been added`
+          `${customerData.name} has been added`,
         );
         return true;
       } catch (error) {
@@ -62,14 +62,11 @@ export function useCustomers() {
         return false;
       }
     },
-    [fetchCustomers]
+    [fetchCustomers],
   );
 
   const editCustomer = useCallback(
-    async (
-      id: string,
-      customerData: Omit<Customer, "id" | "createdAt">
-    ) => {
+    async (id: string, customerData: Omit<Customer, "id" | "createdAt">) => {
       try {
         const customers = getCustomers();
         const index = customers.findIndex((c) => c.id === id);
@@ -91,7 +88,7 @@ export function useCustomers() {
         return false;
       }
     },
-    [fetchCustomers]
+    [fetchCustomers],
   );
 
   const removeCustomer = useCallback(
@@ -113,7 +110,7 @@ export function useCustomers() {
         return false;
       }
     },
-    [fetchCustomers]
+    [fetchCustomers],
   );
 
   useEffect(() => {

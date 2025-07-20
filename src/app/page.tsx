@@ -13,7 +13,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [theme, setTheme] = useState("light");
 
-
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":

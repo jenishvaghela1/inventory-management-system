@@ -22,7 +22,16 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, Search, Edit2, Trash2, Users, Mail, Phone, MapPin } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Users,
+  Mail,
+  Phone,
+  MapPin,
+} from "lucide-react";
 import { useCustomers } from "@/hooks/use-customers";
 import { useLanguage } from "@/contexts/language-context";
 
@@ -36,13 +45,16 @@ interface Customer {
 }
 
 export default function Customers() {
-  const { customers, createCustomer, editCustomer, removeCustomer } = useCustomers();
+  const { customers, createCustomer, editCustomer, removeCustomer } =
+    useCustomers();
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(null);
-  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(
+    null,
+  );
   const { t } = useLanguage();
 
   const [formData, setFormData] = useState({
@@ -52,9 +64,11 @@ export default function Customers() {
     address: "",
   });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -62,7 +76,7 @@ export default function Customers() {
 
   const handleCreateCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const success = await createCustomer(formData);
     if (success) {
       setShowCreateDialog(false);
@@ -128,9 +142,10 @@ export default function Customers() {
     setShowDeleteDialog(true);
   };
 
-  const filteredCustomers = customers.filter((customer: Customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCustomers = customers.filter(
+    (customer: Customer) =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const renderForm = (onSubmit: (e: React.FormEvent) => Promise<void>) => (
@@ -148,7 +163,7 @@ export default function Customers() {
             placeholder="John Doe"
           />
         </div>
-        
+
         <div className="space-y-2">
           <Label htmlFor="email">Email *</Label>
           <Input
@@ -311,9 +326,7 @@ export default function Customers() {
                       colSpan={5}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      {searchTerm
-                        ? "No customers found"
-                        : "No customers yet"}
+                      {searchTerm ? "No customers found" : "No customers yet"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -355,7 +368,8 @@ export default function Customers() {
               Delete Customer
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{customerToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{customerToDelete?.name}"? This
+              action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">

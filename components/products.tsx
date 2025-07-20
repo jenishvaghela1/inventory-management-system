@@ -36,7 +36,13 @@ import {
   Package,
   ChevronRight,
 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useApp } from "@/contexts/app-context";
 import { useProducts } from "@/hooks/use-products";
 import { useCategories } from "@/hooks/use-categories";
@@ -76,7 +82,9 @@ export default function Products() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(
+    new Set(),
+  );
   const { t } = useLanguage();
   const { getCurrencyInfo } = useSettings();
 
@@ -96,7 +104,11 @@ export default function Products() {
     setFormData((prev) => ({
       ...prev,
       [name]:
-        name === "reference" || name === "name" || name === "description" || name === "category" || name === "status"
+        name === "reference" ||
+        name === "name" ||
+        name === "description" ||
+        name === "category" ||
+        name === "status"
           ? value
           : Number.parseFloat(value) || 0,
     }));
@@ -194,21 +206,30 @@ export default function Products() {
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.reference.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "active" && (product.status === "active" || !product.status)) ||
+      (product.description &&
+        product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" &&
+        (product.status === "active" || !product.status)) ||
       (statusFilter === "inactive" && product.status === "inactive") ||
       (statusFilter === "discontinued" && product.status === "discontinued") ||
-      (statusFilter === "with-instances" && product.instances && product.instances.length > 0) ||
-      (statusFilter === "without-instances" && (!product.instances || product.instances.length === 0));
-    
-    const matchesCategory = categoryFilter === "all" || 
-      (categoryFilter === "uncategorized" && (!product.category || product.category === "")) ||
+      (statusFilter === "with-instances" &&
+        product.instances &&
+        product.instances.length > 0) ||
+      (statusFilter === "without-instances" &&
+        (!product.instances || product.instances.length === 0));
+
+    const matchesCategory =
+      categoryFilter === "all" ||
+      (categoryFilter === "uncategorized" &&
+        (!product.category || product.category === "")) ||
       product.category === categoryFilter;
-    
+
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -241,10 +262,10 @@ export default function Products() {
           <Label htmlFor="category">Category</Label>
           <Select
             value={formData.category || "none"}
-            onValueChange={(value) => 
-              setFormData({ 
-                ...formData, 
-                category: value === "none" ? "" : value 
+            onValueChange={(value) =>
+              setFormData({
+                ...formData,
+                category: value === "none" ? "" : value,
               })
             }
           >
@@ -271,10 +292,10 @@ export default function Products() {
           <Label htmlFor="status">Status</Label>
           <Select
             value={formData.status}
-            onValueChange={(value) => 
-              setFormData({ 
-                ...formData, 
-                status: value as "active" | "inactive" | "discontinued"
+            onValueChange={(value) =>
+              setFormData({
+                ...formData,
+                status: value as "active" | "inactive" | "discontinued",
               })
             }
           >
@@ -346,19 +367,20 @@ export default function Products() {
             placeholder="Product description..."
           />
         </div>
-        
+
         {/* Instance Information (Read-only in edit mode) */}
         {currentProduct?.instances && currentProduct.instances.length > 0 && (
           <div className="col-span-2 space-y-2">
             <Label>Product Instances</Label>
             <div className="p-3 bg-muted/50 rounded-lg">
               <div className="text-sm text-muted-foreground mb-2">
-                This product has {currentProduct.instances.length} individual instances. 
-                Use the main products table to manage individual instances.
+                This product has {currentProduct.instances.length} individual
+                instances. Use the main products table to manage individual
+                instances.
               </div>
               <div className="flex flex-wrap gap-2">
                 {currentProduct.instances.slice(0, 5).map((instance, index) => (
-                  <span 
+                  <span
                     key={instance.id}
                     className="px-2 py-1 bg-primary/10 text-primary rounded text-xs"
                   >
@@ -374,9 +396,10 @@ export default function Products() {
             </div>
           </div>
         )}
-        
+
         {/* Quantity field only for products without instances */}
-        {(!currentProduct?.instances || currentProduct.instances.length === 0) && (
+        {(!currentProduct?.instances ||
+          currentProduct.instances.length === 0) && (
           <div className="col-span-2 space-y-2">
             <Label htmlFor="quantity">{t("products.quantity")}</Label>
             <Input
@@ -433,19 +456,28 @@ export default function Products() {
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600 font-medium">Total Products</p>
-                <p className="text-2xl font-bold text-blue-900">{products.length}</p>
+                <p className="text-sm text-blue-600 font-medium">
+                  Total Products
+                </p>
+                <p className="text-2xl font-bold text-blue-900">
+                  {products.length}
+                </p>
               </div>
               <Package className="h-8 w-8 text-blue-500" />
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-green-600 font-medium">Active Products</p>
+                <p className="text-sm text-green-600 font-medium">
+                  Active Products
+                </p>
                 <p className="text-2xl font-bold text-green-900">
-                  {products.filter(p => p.status === "active" || !p.status).length}
+                  {
+                    products.filter((p) => p.status === "active" || !p.status)
+                      .length
+                  }
                 </p>
               </div>
               <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
@@ -453,33 +485,46 @@ export default function Products() {
               </div>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600 font-medium">With Instances</p>
+                <p className="text-sm text-purple-600 font-medium">
+                  With Instances
+                </p>
                 <p className="text-2xl font-bold text-purple-900">
-                  {products.filter(p => p.instances && p.instances.length > 0).length}
+                  {
+                    products.filter(
+                      (p) => p.instances && p.instances.length > 0,
+                    ).length
+                  }
                 </p>
               </div>
               <Sparkles className="h-8 w-8 text-purple-500" />
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-amber-600 font-medium">Low Stock</p>
                 <p className="text-2xl font-bold text-amber-900">
-                  {products.filter(p => {
-                    if (p.instances && p.instances.length > 0) {
-                      return p.instances.filter(i => i.status === "available").length <= (p.lowStockThreshold || 5);
-                    }
-                    return p.quantity <= (p.lowStockThreshold || 5);
-                  }).length}
+                  {
+                    products.filter((p) => {
+                      if (p.instances && p.instances.length > 0) {
+                        return (
+                          p.instances.filter((i) => i.status === "available")
+                            .length <= (p.lowStockThreshold || 5)
+                        );
+                      }
+                      return p.quantity <= (p.lowStockThreshold || 5);
+                    }).length
+                  }
                 </p>
               </div>
-              <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-white text-sm font-bold">!</div>
+              <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                !
+              </div>
             </div>
           </div>
         </div>
@@ -499,7 +544,7 @@ export default function Products() {
                 className="pl-10 input-enhanced"
               />
             </div>
-            
+
             <div className="flex gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-48">
@@ -511,10 +556,12 @@ export default function Products() {
                   <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="discontinued">Discontinued</SelectItem>
                   <SelectItem value="with-instances">With Instances</SelectItem>
-                  <SelectItem value="without-instances">Without Instances</SelectItem>
+                  <SelectItem value="without-instances">
+                    Without Instances
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              
+
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Filter by category" />
@@ -537,24 +584,29 @@ export default function Products() {
               </Select>
             </div>
           </div>
-          
+
           {/* Results Summary */}
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>
               Showing {filteredProducts.length} of {products.length} products
-              {(statusFilter !== "all" || categoryFilter !== "all" || searchTerm) && " (filtered)"}
+              {(statusFilter !== "all" ||
+                categoryFilter !== "all" ||
+                searchTerm) &&
+                " (filtered)"}
             </span>
-            
+
             {/* Expand/Collapse Controls */}
-            {filteredProducts.some(p => p.instances && p.instances.length > 0) && (
+            {filteredProducts.some(
+              (p) => p.instances && p.instances.length > 0,
+            ) && (
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
                     const productsWithInstances = filteredProducts
-                      .filter(p => p.instances && p.instances.length > 0)
-                      .map(p => p.id);
+                      .filter((p) => p.instances && p.instances.length > 0)
+                      .map((p) => p.id);
                     setExpandedProducts(new Set(productsWithInstances));
                   }}
                   className="text-xs"
@@ -598,7 +650,7 @@ export default function Products() {
                   <TableHead className="text-right">
                     {t("common.status")}
                   </TableHead>
-                <TableHead className="text-right">
+                  <TableHead className="text-right">
                     {t("products.stock")}
                   </TableHead>
                   <TableHead className="text-right">
@@ -609,10 +661,12 @@ export default function Products() {
               <TableBody>
                 {filteredProducts.map((product, index) => {
                   const stockStatus = getStockStatus(product.quantity);
-                  const hasInstances = product.instances && product.instances.length > 0;
+                  const hasInstances =
+                    product.instances && product.instances.length > 0;
                   const isExpanded = expandedProducts.has(product.id);
-                  const availableInstances = hasInstances 
-                    ? product.instances!.filter(i => i.status === "available").length 
+                  const availableInstances = hasInstances
+                    ? product.instances!.filter((i) => i.status === "available")
+                        .length
                     : product.quantity;
 
                   return (
@@ -628,7 +682,9 @@ export default function Products() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => toggleProductExpansion(product.id)}
+                                onClick={() =>
+                                  toggleProductExpansion(product.id)
+                                }
                                 className="p-0 h-auto w-auto hover:bg-transparent"
                               >
                                 {isExpanded ? (
@@ -668,7 +724,9 @@ export default function Products() {
                         <TableCell className="text-right font-medium">
                           <div>
                             <div className="font-medium">
-                              {hasInstances ? `${availableInstances}/${product.instances!.length}` : product.quantity}
+                              {hasInstances
+                                ? `${availableInstances}/${product.instances!.length}`
+                                : product.quantity}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {hasInstances ? "available/total" : "in stock"}
@@ -688,26 +746,25 @@ export default function Products() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                product.status === "active" 
-                                  ? "bg-green-100 text-green-800" 
-                                  : product.status === "inactive"
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              product.status === "active"
+                                ? "bg-green-100 text-green-800"
+                                : product.status === "inactive"
                                   ? "bg-yellow-100 text-yellow-800"
                                   : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {product.status || "active"}
-                            </span>
+                            }`}
+                          >
+                            {product.status || "active"}
+                          </span>
                         </TableCell>
-                          <TableCell className="text-right">
-
-                                                   <span
-                              className={`px-1 py-0.5 rounded text-xs ${getStockStatusColor(stockStatus)}`}
-                            >
-                              {stockStatus}
-                            </span>
-                                                    </TableCell>
+                        <TableCell className="text-right">
+                          <span
+                            className={`px-1 py-0.5 rounded text-xs ${getStockStatusColor(stockStatus)}`}
+                          >
+                            {stockStatus}
+                          </span>
+                        </TableCell>
 
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -715,7 +772,9 @@ export default function Products() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => openModal(MODAL_TYPES.QR_CODE, product)}
+                                onClick={() =>
+                                  openModal(MODAL_TYPES.QR_CODE, product)
+                                }
                                 className="hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
                                 title="Generate QR Code"
                               >
@@ -745,126 +804,130 @@ export default function Products() {
                       </TableRow>
 
                       {/* Instance Rows (shown when expanded) */}
-                      {hasInstances && isExpanded && product.instances!.map((instance, instanceIndex) => (
-                        <TableRow
-                          key={`${product.id}-${instance.id}`}
-                          className="bg-muted/30 border-l-4 border-l-primary/20"
-                        >
-                          <TableCell className="pl-12">
-                            <div className="text-sm">
-                              <div className="font-mono">{instance.referenceNumber}</div>
-                              <div className="text-xs text-muted-foreground">
-                                Instance #{instanceIndex + 1}
+                      {hasInstances &&
+                        isExpanded &&
+                        product.instances!.map((instance, instanceIndex) => (
+                          <TableRow
+                            key={`${product.id}-${instance.id}`}
+                            className="bg-muted/30 border-l-4 border-l-primary/20"
+                          >
+                            <TableCell className="pl-12">
+                              <div className="text-sm">
+                                <div className="font-mono">
+                                  {instance.referenceNumber}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Instance #{instanceIndex + 1}
+                                </div>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm text-muted-foreground">
-                              Same as main product
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {/* Empty for instances */}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              instance.status === "available" 
-                                ? "bg-green-100 text-green-800" 
-                                : instance.status === "sold"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-yellow-100 text-yellow-800"
-                            }`}>
-                              {instance.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            Same as main
-                          </TableCell>
-                          <TableCell className="text-right text-sm text-muted-foreground">
-                            Same as main
-                          </TableCell>
-                          <TableCell>
-                            {/* Empty for instances */}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openModal(MODAL_TYPES.QR_CODE, { 
-                                  ...product, 
-                                  reference: instance.referenceNumber,
-                                  instanceId: instance.id 
-                                })}
-                                className="hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
-                                title="Generate QR Code for this instance"
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-muted-foreground">
+                                Same as main product
+                              </div>
+                            </TableCell>
+                            <TableCell>{/* Empty for instances */}</TableCell>
+                            <TableCell className="text-right">
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  instance.status === "available"
+                                    ? "bg-green-100 text-green-800"
+                                    : instance.status === "sold"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                }`}
                               >
-                                <Package className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openModal(MODAL_TYPES.EDIT_INSTANCE, {
-                                  product,
-                                  instance,
-                                  instanceIndex
-                                })}
-                                className="hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
-                                title="Edit this instance"
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                {instance.status}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              Same as main
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              Same as main
+                            </TableCell>
+                            <TableCell>{/* Empty for instances */}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    openModal(MODAL_TYPES.QR_CODE, {
+                                      ...product,
+                                      reference: instance.referenceNumber,
+                                      instanceId: instance.id,
+                                    })
+                                  }
+                                  className="hover:bg-green-50 hover:text-green-600 transition-colors duration-200"
+                                  title="Generate QR Code for this instance"
+                                >
+                                  <Package className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    openModal(MODAL_TYPES.EDIT_INSTANCE, {
+                                      product,
+                                      instance,
+                                      instanceIndex,
+                                    })
+                                  }
+                                  className="hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200"
+                                  title="Edit this instance"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </React.Fragment>
                   );
                 })}
                 {filteredProducts.length === 0 && (
                   <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center py-12"
-                    >
+                    <TableCell colSpan={8} className="text-center py-12">
                       <div className="flex flex-col items-center gap-3">
                         <Package className="h-12 w-12 text-muted-foreground/50" />
                         <div>
                           <p className="text-lg font-medium text-muted-foreground">
-                            {products.length === 0 
-                              ? "No products yet" 
-                              : "No products match your filters"
-                            }
+                            {products.length === 0
+                              ? "No products yet"
+                              : "No products match your filters"}
                           </p>
                           <p className="text-sm text-muted-foreground/80">
-                            {products.length === 0 
+                            {products.length === 0
                               ? "Create your first product to get started"
-                              : "Try adjusting your search or filter criteria"
-                            }
+                              : "Try adjusting your search or filter criteria"}
                           </p>
                         </div>
                         {products.length === 0 && (
                           <Button
-                            onClick={() => openModal(MODAL_TYPES.CREATE_PRODUCT)}
+                            onClick={() =>
+                              openModal(MODAL_TYPES.CREATE_PRODUCT)
+                            }
                             className="mt-2"
                           >
                             <Plus className="h-4 w-4 mr-2" />
                             Create First Product
                           </Button>
                         )}
-                        {products.length > 0 && filteredProducts.length === 0 && (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setSearchTerm("");
-                              setStatusFilter("all");
-                              setCategoryFilter("all");
-                            }}
-                            className="mt-2"
-                          >
-                            Clear Filters
-                          </Button>
-                        )}
+                        {products.length > 0 &&
+                          filteredProducts.length === 0 && (
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setSearchTerm("");
+                                setStatusFilter("all");
+                                setCategoryFilter("all");
+                              }}
+                              className="mt-2"
+                            >
+                              Clear Filters
+                            </Button>
+                          )}
                       </div>
                     </TableCell>
                   </TableRow>

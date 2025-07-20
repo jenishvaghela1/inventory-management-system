@@ -51,7 +51,7 @@ export function QRCodeModal() {
     try {
       setIsGenerating(true);
       console.log("Starting QR code generation for product:", product);
-      
+
       // Dynamic import of QRCode - using the correct import syntax
       const { default: QRCode } = await import("qrcode");
 
@@ -219,7 +219,9 @@ export function QRCodeModal() {
       <DialogContent className="max-w-md animate-in scale-in">
         <DialogHeader>
           <DialogTitle>
-            {product.instanceId ? "Individual Instance QR Code" : "Product QR Code"}
+            {product.instanceId
+              ? "Individual Instance QR Code"
+              : "Product QR Code"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center space-y-4 p-4">

@@ -2,15 +2,21 @@
 
 import { useState, useEffect } from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useApp } from "@/contexts/app-context";
 import { useProducts } from "@/hooks/use-products";
 import { MODAL_TYPES } from "@/lib/constants";
@@ -61,14 +67,14 @@ export function EditInstanceModal() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
   const handleStatusChange = (value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       status: value as "available" | "sold" | "reserved",
     }));
@@ -82,7 +88,7 @@ export function EditInstanceModal() {
 
     try {
       // Get the complete product data from the products list
-      const fullProduct = products.find(p => p.id === data.product.id);
+      const fullProduct = products.find((p) => p.id === data.product.id);
       if (!fullProduct) {
         throw new Error("Product not found");
       }
@@ -93,9 +99,10 @@ export function EditInstanceModal() {
         ...data.instance,
         referenceNumber: formData.referenceNumber,
         status: formData.status,
-        ...(formData.status === "sold" && !data.instance.soldAt && {
-          soldAt: new Date().toISOString(),
-        }),
+        ...(formData.status === "sold" &&
+          !data.instance.soldAt && {
+            soldAt: new Date().toISOString(),
+          }),
       };
 
       // Prepare the complete product data
@@ -150,7 +157,9 @@ export function EditInstanceModal() {
           <div className="space-y-2">
             <Label className="text-sm font-medium">Product</Label>
             <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="font-medium">{data?.product?.name || "Unknown Product"}</div>
+              <div className="font-medium">
+                {data?.product?.name || "Unknown Product"}
+              </div>
               <div className="text-sm text-muted-foreground">
                 Main Reference: {data?.product?.reference || "N/A"}
               </div>

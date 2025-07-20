@@ -54,7 +54,7 @@ export function useCategories() {
         fetchCategories();
         showToast.success(
           "Category created successfully",
-          `${categoryData.name} has been added`
+          `${categoryData.name} has been added`,
         );
         return true;
       } catch (error) {
@@ -63,13 +63,13 @@ export function useCategories() {
         return false;
       }
     },
-    [fetchCategories]
+    [fetchCategories],
   );
 
   const editCategory = useCallback(
     async (
       id: string,
-      categoryData: Omit<Category, "id" | "createdAt" | "updatedAt">
+      categoryData: Omit<Category, "id" | "createdAt" | "updatedAt">,
     ) => {
       try {
         const categories = getCategories();
@@ -93,7 +93,7 @@ export function useCategories() {
         return false;
       }
     },
-    [fetchCategories]
+    [fetchCategories],
   );
 
   const removeCategory = useCallback(
@@ -115,7 +115,7 @@ export function useCategories() {
         return false;
       }
     },
-    [fetchCategories]
+    [fetchCategories],
   );
 
   useEffect(() => {

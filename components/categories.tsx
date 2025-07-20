@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Edit2, Trash2, Tag } from "lucide-react";
@@ -27,18 +27,29 @@ interface Category {
 }
 
 const predefinedColors = [
-  "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6",
-  "#F97316", "#06B6D4", "#84CC16", "#EC4899", "#6366F1"
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#F97316",
+  "#06B6D4",
+  "#84CC16",
+  "#EC4899",
+  "#6366F1",
 ];
 
 export default function Categories() {
-  const { categories, createCategory, editCategory, removeCategory } = useCategories();
+  const { categories, createCategory, editCategory, removeCategory } =
+    useCategories();
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null,
+  );
   const { t } = useLanguage();
 
   const [formData, setFormData] = useState({
@@ -49,7 +60,7 @@ export default function Categories() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -57,7 +68,7 @@ export default function Categories() {
 
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const success = await createCategory(formData);
     if (success) {
       setShowCreateDialog(false);
@@ -120,7 +131,7 @@ export default function Categories() {
   };
 
   const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const renderForm = (onSubmit: (e: React.FormEvent) => Promise<void>) => (
@@ -137,7 +148,7 @@ export default function Categories() {
           placeholder="Electronics, Clothing, etc."
         />
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Input
@@ -157,9 +168,11 @@ export default function Categories() {
             <button
               key={color}
               type="button"
-              onClick={() => setFormData(prev => ({ ...prev, color }))}
+              onClick={() => setFormData((prev) => ({ ...prev, color }))}
               className={`w-8 h-8 rounded-full border-2 transition-all ${
-                formData.color === color ? "border-gray-800 scale-110" : "border-gray-300"
+                formData.color === color
+                  ? "border-gray-800 scale-110"
+                  : "border-gray-300"
               }`}
               style={{ backgroundColor: color }}
               title={color}
@@ -264,9 +277,13 @@ export default function Categories() {
           {filteredCategories.length === 0 && (
             <div className="text-center py-12">
               <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No categories found</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No categories found
+              </h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm ? "Try adjusting your search" : "Get started by creating your first category"}
+                {searchTerm
+                  ? "Try adjusting your search"
+                  : "Get started by creating your first category"}
               </p>
               {!searchTerm && (
                 <Button onClick={openCreateDialog}>
@@ -312,7 +329,8 @@ export default function Categories() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground mb-4">
-            Are you sure you want to delete "{categoryToDelete?.name}"? This action cannot be undone.
+            Are you sure you want to delete "{categoryToDelete?.name}"? This
+            action cannot be undone.
           </p>
           <DialogFooter className="flex gap-2">
             <Button
