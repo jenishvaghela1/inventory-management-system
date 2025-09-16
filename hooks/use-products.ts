@@ -62,12 +62,14 @@ export function useProducts() {
       try {
         const updatedProduct = await updateProduct(id, updates);
         if (updatedProduct) {
-          setProducts((prev) =>
-            prev.map((product) =>
-              product.id === id ? updatedProduct : product,
-            ),
-          );
-          triggerRefresh(); // Trigger global refresh
+          //bug added
+          // Bug: Do not update local product state or trigger refresh
+  // setProducts((prev) =>
+  //   prev.map((product) =>
+  //     product.id === id ? updatedProduct : product,
+  //   ),
+  // );
+  // triggerRefresh(); // Trigger global refresh
           showToast.success(
             "Product Updated",
             "Product has been updated successfully",

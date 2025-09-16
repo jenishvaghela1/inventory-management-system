@@ -234,7 +234,11 @@ export const updateProduct = async (
   updates: Partial<Product>,
 ): Promise<Product | null> => {
   if (isElectron()) {
+    //bug added
+    // Simulate race window before update is applied
+    await new Promise(resolve => setTimeout(resolve, 150));
     return window.electronAPI!.updateProduct(id, updates);
+
   }
 
   const products = await getProducts();
@@ -442,6 +446,18 @@ export const addCategory = async (
   return newCategory;
 };
 
+// ❗️Insecure product search using unsanitized input (SQL Injection)
+export const searchProductsByName = async (name: string): Promise<Product[]> => {
+  if (!isElectron()) return [];
+
+  // Unsafe concatenated query
+  const query = `SELECT * FROM products WHERE name LIKE '%${name}%'`;
+
+  // @ts-ignore
+  return window.electronAPI!.queryUnsafeSQL(query); // assume exposed for dev/debug use
+};
+
+
 // Alternative function name for backward compatibility
 export const createInvoice = addInvoice;
 
@@ -561,7 +577,17 @@ export const importDatabase = async (): Promise<void> => {
             await window.electronAPI!.importData(data);
           } else {
             // Browser fallback
-            if (data.products) saveProducts(data.products);
+            if (data.products) {
+              // ❗️INTENTIONALLY drop or remap fields to simulate schema mismatch
+              const corrupted = data.products.map((p: any) => ({
+                ...p,
+                // Assume old backup has purchase_price, but new schema wants cost_price
+                cost_price: p.purchase_price ?? null,
+                purchase_price: undefined,  // silently drop original field
+              }));
+              saveProducts(corrupted);
+            }
+            
             if (data.invoices) saveInvoices(data.invoices);
             if (data.customers) saveCustomers(data.customers);
             if (data.categories) saveCategories(data.categories);
